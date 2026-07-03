@@ -13,4 +13,4 @@ python-dotenv
 groq
 ragas==0.1.7
 datasets
-tokenizers==0.19.1
+tokenizers==0.21.0
