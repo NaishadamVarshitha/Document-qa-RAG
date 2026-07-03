@@ -4,6 +4,7 @@ load_dotenv()
 
 from src.ingest import load_and_ingest
 from src.chain import build_qa_chain
+from src.evaluator import evaluate_rag
 import tempfile
 import os
 import hashlib
@@ -47,14 +48,26 @@ if "chain" in st.session_state:
         with st.chat_message("user"):
             st.markdown(question)
 
-        # Get answer
+        # Get answer and source docs
         with st.chat_message("assistant"):
             with st.spinner("Thinking..."):
                 answer = st.session_state.chain.invoke(question)
+                docs = st.session_state.retriever.invoke(question)
+                contexts = [doc.page_content for doc in docs]
+
             st.markdown(answer)
 
+            # RAGAS Evaluation
+            with st.spinner("Evaluating answer quality..."):
+                scores = evaluate_rag(question, answer, contexts)
+
+            st.markdown("**📊 RAGAS Evaluation Scores:**")
+            col1, col2, col3 = st.columns(3)
+            col1.metric("Faithfulness", scores["faithfulness"])
+            col2.metric("Answer Relevancy", scores["answer_relevancy"])
+            col3.metric("Context Utilization", scores["context_utilization"])
+
             with st.expander("📌 Source chunks used"):
-                docs = st.session_state.retriever.invoke(question)
                 for doc in docs:
                     st.markdown(f"**Page {doc.metadata.get('page', '?')}:** {doc.page_content[:300]}...")
 
